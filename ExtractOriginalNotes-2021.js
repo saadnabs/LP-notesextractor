@@ -1,5 +1,5 @@
-//Result variables  
 var resultStartRow = 2;
+//Result variables  
 var resultStartColumn = "A";
 var resultEndColumn = "S";
 var resultRowWrite = 2;
@@ -29,11 +29,11 @@ function main() {
   //  var sheetToSearch = sheets[i]; //sheet // 
   //  var sheetName = sheetToSearch.getName();
 
-    var sheetName = "ott-dic 21";
-    //"gen-mar 21";
+    var sheetName =
+    "ott-dic 21";
     //"apr-giu 21";
+    //"gen-mar 21";
     //"lu-sett 21";
-    //"ott-dic 21";
     var sheetToSearch = spreadsheet.getSheetByName(sheetName);
 
     //log("spreadsheet name: " + sheetName + " -- processing: " + ((!sheetName.includes("output")) && (!sheetName.includes("new ")) && (!sheetName.includes("Form ")) && (!sheetName.includes("Room "))));
@@ -163,7 +163,7 @@ function writeBooking(room, dateText, note) {
 
   var toOutput = [dateText, room, note];
   writeOutput(resultRowWrite, toOutput);
-  log("  booking " + bookingsProcessed);
+  log("  booking " + (bookingsProcessed + 1));
   resultRowWrite++;
   bookingsProcessed++;
 }
