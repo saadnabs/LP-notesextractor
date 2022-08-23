@@ -14,13 +14,12 @@ function main() {
   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 
   //Explicitly get the search notes sheet called output
-  var outputSheetName = "output-originals-21";
+  var outputSheetName = "output-test";//"output-originals-21";
   output = spreadsheet.getSheetByName(outputSheetName);
 
   //clearOutOldResults(output);
 
-  var dataRange = output.getDataRange();
-  resultStartRow = dataRange.getLastRow() + 1;
+  resultStartRow = getLastRow(output) + 1;
   resultRowWrite = resultStartRow;
 
   var sheets = spreadsheet.getSheets();
@@ -30,9 +29,9 @@ function main() {
   //  var sheetName = sheetToSearch.getName();
 
     var sheetName =
-    "ott-dic 21";
-    //"apr-giu 21";
+    "apr-giu 21";
     //"gen-mar 21";
+    //"ott-dic 21";
     //"lu-sett 21";
     var sheetToSearch = spreadsheet.getSheetByName(sheetName);
 
@@ -87,37 +86,47 @@ function assessBookingEntries(dataRange, dataValues, notes, dateYear, dateMonth)
           //One example where this breaks, jan 30 bambu booking till jan 31, but then jumps to next X in Limoni that is part of a limoni/bambu booking, and gets counted against the bambu again.
         } else {
 
-          var lastRow = bookingsProcessed + 1; //processing current one
-          var lastBooking = bookingsProcessed - 1;
+          var previousCellValue = dataValues[i][j-1];
 
-          log("  booking continutation " + lastBooking);
-          var nggCell = output.getRange(lastRow, 5);
-          var ngg = nggCell.getValue();
-          if (!ngg) { ngg = 1; }
-          
-          var bookingDate = output.getRange(lastRow, 1).getValue();
-          var lastDay = new Date(bookingDate.getFullYear(), bookingDate.getMonth() + 1, 0).getDate();
-
-          if ((bookingDate.getDate() + ngg - 1) < lastDay) {
-            //log(bookingsProcessed + " assessBookingEntries -- contatti: " + output.getRange(lastRow, 7).getValue());;
-            //log("assessBookingEntries: last row's ngg: " + ngg);
-            nggCell.setValue(++ngg);
-            //log("assessBookingEntries: last row's updated ngg: " + ngg);
-            //If greater than 31 and has X but no note, then create an entry to assess manually
+          if (previousCellValue === "") {
+            //This is not a continuation of the previous cell booking, might be visually connected - 2 rooms booked by 1 guest
+            writeBooking(room, dateText, "TBC multi-room booking");
+          } else if (allRooms.includes(previousCellValue)){
+            writeBooking(room, dateText, "TBC room booking overflowing from last month");
           } else {
-            writeBooking(room, dateText, "no note")
+
+            var lastRow = getLastRow(output); //processing current one
+            var lastBooking = bookingsProcessed;
+
+            log("  booking continutation " + lastBooking);
+            var nggCell = output.getRange(lastRow, 5);
+            var ngg = nggCell.getValue();
+            if (!ngg) { ngg = 1; }
+            
+            var bookingDate = output.getRange(lastRow, 1).getValue();
+            var lastDay = new Date(bookingDate.getFullYear(), bookingDate.getMonth() + 1, 0).getDate();
+
+            if ((bookingDate.getDate() + ngg - 1) <= lastDay) {
+              //log(bookingsProcessed + " assessBookingEntries -- contatti: " + output.getRange(lastRow, 7).getValue());;
+              //log("assessBookingEntries: last row's ngg: " + ngg);
+              nggCell.setValue(++ngg);
+              //log("assessBookingEntries: last row's updated ngg: " + ngg);
+              //If greater than 31 and has X but no note, then create an entry to assess manually
+            } else {
+              writeBooking(room, dateText, "no note")
+            }
+
+            //update leaving date to be booking date + ngg
+            var currentDate = bookingDate.getDate();
+
+            var leavingDate = new Date(+bookingDate);
+            leavingDate.setDate(currentDate + ngg);
+
+            //log("in assess: bookingDate: " + bookingDate + " -- currentDate " + currentDate + " --currentDate + ngg " + (currentDate + ngg) + " leavingDate " + leavingDate);
+
+            //output leaving date based on latest ngg
+            output.getRange(lastRow, 4).setValue(leavingDate);
           }
-
-          //update leaving date to be booking date + ngg
-          var currentDate = bookingDate.getDate();
-
-          var leavingDate = new Date(+bookingDate);
-          leavingDate.setDate(currentDate + ngg);
-
-          //log("in assess: bookingDate: " + bookingDate + " -- currentDate " + currentDate + " --currentDate + ngg " + (currentDate + ngg) + " leavingDate " + leavingDate);
-
-          //output leaving date based on latest ngg
-          output.getRange(lastRow, 4).setValue(leavingDate);
         }
 
 
@@ -187,4 +196,9 @@ function clearOutOldResults(outputSheet) {
   var lastRow = dataRange.getLastRow();
   var range = outputSheet.getRange(resultStartColumn + resultStartRow + ":" + resultEndColumn + lastRow);
   range.clearContent();
+}
+
+function getLastRow(sheet) {
+  var dataRange = sheet.getDataRange();
+  return dataRange.getLastRow();
 }
