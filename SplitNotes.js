@@ -6,7 +6,7 @@
 
 //BE AWARE
 //When adding columns
-//- modify the variable 'resultEndColumn' definition below
+//- modify the variable 'splitEndColumn' definition below
 //- update two instances of "toOutput" in the correct order of the additional column
 
 //?? below
@@ -16,11 +16,8 @@
 var logging = true;
 var timing = false;
 
-//Result variables  
-var resultStartRow = 2;
-var resultStartColumn = "A";
-var resultEndColumn = "S";
-var resultRowWrite = 2;
+//split variables  
+var splitRowWrite = 2;
 
 var rowsBetweenMonths = 0;
 
@@ -41,17 +38,17 @@ function extractNotes(outputSheetName) {
   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 
   //Explicitly get the search notes sheet called output
-  var outputSheetName = "output-originals";
+  var outputSheetName = "output-test";
   output = spreadsheet.getSheetByName(outputSheetName);
 
   //Clear out previous results
-  //clearOutOldResults(output);
+  clearOutOldResults(output);
   
   //Append to sheet from the last row
   var dataRange = output.getDataRange();
-  resultStartRow = dataRange.getLastRow() + 1;
+  splitStartRow = dataRange.getLastRow() + 1;
 
-  //log("resultstartrow" + resultStartRow);
+  //log("splitstartrow" + splitStartRow);
   
   //log("spreadsheet name: " + spreadsheet.getName());
   var sheets = spreadsheet.getSheets();
@@ -63,7 +60,7 @@ function extractNotes(outputSheetName) {
 //  for (var i in sheets) {
 //    var sheetToSearch = sheets[i]; //sheet // 
 //    var sheetName = sheetToSearch.getName();
-    var sheetName = "apr-giu 21";
+    var sheetName = "verified-ott-dic 22";
     var sheetToSearch = spreadsheet.getSheetByName(sheetName);
     log("spreadsheet name: " + sheetName + " -- processing: " + ((!sheetName.includes("output")) && (!sheetName.includes("new ")) && (!sheetName.includes("Form ")) && (!sheetName.includes("Room "))));
     if ((!sheetName.includes("output")) && (!sheetName.includes("new ")) && (!sheetName.includes("Form ")) && (!sheetName.includes("Room "))) {
@@ -71,9 +68,36 @@ function extractNotes(outputSheetName) {
       //log("Searching [i]: " + i + " -- " + sheetName);
       log("Processing bookings from " + sheetName);
 
-      processRange(sheetToSearch, "A2:AF14", "A1", dateYear);
-      processRange(sheetToSearch, "A16:AF28", "A15", dateYear);
-      processRange(sheetToSearch, "A30:AF42", "A29", dateYear);
+      var dataRange = sheetToSearch.getDataRange();
+      var dataValues = dataRange.getValues();
+
+      //Loop over rows (skipping header), and process the note column
+      for (var i = 1; i < dataValues.length - 1; i++) {
+
+        var checkIn = new Date(dataValues[i][0]);
+        var room = dataValues[i][1];
+        var note = dataValues[i][2];
+        var checkOut = dataValues[i][3];
+        var numOfDays = dataValues[i][4];
+
+        if (!numOfDays && !checkOut) {
+          numOfDays = 1;
+          checkOut = new Date(+checkIn);
+          checkOut.setDate(checkIn.getDate() + numOfDays);
+        }
+        var toOutput = splitNote(note);
+        toOutput.unshift(checkIn, room, checkOut, numOfDays);
+
+        writeOutput(splitRowWrite, toOutput);
+
+        splitRowWrite++;
+        bookingsProcessed++;
+
+        if (bookingsProcessed % 25 === 0) {
+          log("Processed " + bookingsProcessed + " bookings till now...");
+        }
+
+      }
     } // end if not output
 // End for
 //  }
@@ -90,127 +114,14 @@ function sortResults(output) {
   //TODO use getDataRange
   output.getRange("A1:T" + lastRow).sort(1);
 }
-
-function processRange(sheetToSearch, rangeForData, rangeForMonth, dateYear) {
-  //Get the entire data range for the first month section and all the notes    
-  var dataRange = sheetToSearch.getRange(rangeForData)
-  var dataValues = dataRange.getValues();
-  var dateMonth = sheetToSearch.getRange(rangeForMonth).getValue();
-  if (dateMonth < 10) { dateMonth = "0" + dateMonth; }
-  //log("dateMonth: " + dateMonth);
-  var notes = dataRange.getNotes();
-
-  assessBookingEntries(dataRange, dataValues, notes, dateYear, dateMonth);
-}
-
-function assessBookingEntries(dataRange, dataValues, notes, dateYear, dateMonth) {
-  //log("dataRange values: " + dataRange.getValues());
-  //Iterate over rows
-  rowLoop:
-  for (var i = 0; i < dataValues.length - 1; i++) {
-
-    //Iterate over columns
-    columnLoop:
-    for (var j = 1; j < dataValues[i].length; j++) {
-
-      var cellValue = dataValues[i][j];
-      var dateDay = (j > 9) ? (j) : "0" + (j);
-      var dateText = "20" + dateYear + "-" + dateMonth + "-" + dateDay;
-      //log("isNan " + isNaN(cellValue));
-
-      //When a booking is found in standard row of a room
-      //TODO eventually have S in 2022 when a SPA booking exists
-      if (cellValue === "x") {
-        //log("found x [" + cellValue + "] in cell at [" + i + ":" + j + "]");
-
-        var room = dataValues[i][0];
-        var note = notes[i][j].toLowerCase();
-
-        //log(bookingsProcessed + " room " + room + " -- note: " + note);
-        if (note) {
-          splitNoteAndWriteBooking(room, note, dateText);
-
-          //else when there's an X without a note, it's because it's the continuation of a previous booking
-          //One example where this breaks, jan 30 bambu booking till jan 31, but then jumps to next X in Limoni that is part of a limoni/bambu booking, and gets counted against the bambu again.
-        } else {
-
-          var lastRow = bookingsProcessed + 1; //processing current one
-
-          //log("assessBookingEntries: last row in output: " + lastRow);
-          var nggCell = output.getRange(lastRow, 4);
-          var ngg = nggCell.getValue()
-
-          var status = output.getRange(lastRow, 9).getValue();
-
-          var bookingDate = output.getRange(lastRow, 1).getValue();
-          var lastDay = new Date(bookingDate.getFullYear(), bookingDate.getMonth() + 1, 0).getDate();
-
-          if ((bookingDate.getDate() + ngg - 1) < lastDay && status != "manual - referral") {
-            //log(bookingsProcessed + " assessBookingEntries -- contatti: " + output.getRange(lastRow, 7).getValue());;
-            //log("assessBookingEntries: last row's ngg: " + ngg);
-            nggCell.setValue(++ngg);
-            //log("assessBookingEntries: last row's updated ngg: " + ngg);
-            //If greater than 31 and has X but no note, then create an entry to assess manually
-          } else {
-            writeBookingForReview(room, dateText, "")
-          }
-
-          //update leaving date to be booking date + ngg
-          var currentDate = bookingDate.getDate();
-
-          var leavingDate = new Date(+bookingDate);
-          leavingDate.setDate(currentDate + ngg);
-
-          //log("in assess: bookingDate: " + bookingDate + " -- currentDate " + currentDate + " --currentDate + ngg " + (currentDate + ngg) + " leavingDate " + leavingDate);
-
-          //output leaving date based on latest ngg
-          output.getRange(lastRow, 3).setValue(leavingDate);
-        }
-
-
-        //When a booking cell is empty in any row
-      } else if (cellValue === "") {
-        //log("skipping empty cell at [" + i + ":" + j + "]");
-
-        //When a booking is found in the calendar days or dates rows
-      } else if (!isNaN(cellValue) || cellValue !== "x") {
-        //log("found non-x [" + cellValue + "] in cell at [" + i + ":" + j + "]");
-        var note = notes[i][j];
-
-        if (note) {
-          //In the calendar days, room is always the first word
-          var room = note.substring(0, note.indexOf(" ") - 1).toLowerCase();
-          //log(bookingsProcessed + " room: " + room);
-
-          //Fixing specific error where room name isn't added in day/date notes
-          if (room === "ok" || room === "ex") {
-            room = "Unspecified";
-          } else {
-            room = getFullRoomName(room);
-            if (room == "") {
-              log(bookingsProcessed + " -- note: " + note);
-              writeBookingForReview("N/A", dateText, note);
-            }
-          }
-
-          //note = note.substring(note.indexOf(" ") + 1, note.length - 1);
-          //log("room " + room + " -- note: " + note);
-          splitNoteAndWriteBooking(room, note, dateText);
-        }
-        //if cell value is empty, skip
-      } else {
-        log("shouldn't encounter this");
-      }
-
-    }
-  }
-}
 //TODO the splitting process to be cleaned up as I go through different booking formats
-function splitNoteAndWriteBooking(room, note, dateText) {
+function splitNote(note) {
 
   var pagato = "";
   var metodo = "";
   var contatti = "";
+  var email = "";
+  var telephone = "";
   var nomi = "";
   var status = "";
   var massage = "";
@@ -219,12 +130,17 @@ function splitNoteAndWriteBooking(room, note, dateText) {
   var dessert = "";
   var cestoBio = "";
   var ebike = "";
+  var spa = "";
+  var fnb = "";
   var ngg = 1; //numero giorni
   var dataPagata = "";
   var dataPrenotata = "";
+  var noteAnnulla = "", noteSposta = "";
   var originalNote = note;
 
   //Check if the note starts with the room name, update room name and remove it to process note as usual
+
+  //TODO handle notes that say vedi or rooms N/A or review
 
   //Standardise bambù to bambu
   if (note.includes("ù")) {
@@ -234,124 +150,107 @@ function splitNoteAndWriteBooking(room, note, dateText) {
   //Work on the first line
 
   //Check for room name at the start of a line - usually for cancelled entries, mostly seen
-  if (note.toLowerCase().startsWith("black") || note.toLowerCase().startsWith("bambu")) {
+  if (note.toLowerCase().startsWith("black") || note.toLowerCase().startsWith("bambu") || note.toLowerCase().startsWith("bleue") || note.toLowerCase().startsWith("edera") || note.toLowerCase().startsWith("papiro")) {
     var nextSpaceLocation = regexIndexOf(note, /\s/);
     
-    room = getFullRoomName(note.substring(0, note.indexOf(" ") - 1));
-
-    //log(bookingsProcessed + " starts with Black or bambu -- substring " + note.substring(0, note.indexOf(" ") - 1) + "-- room " + room + " -- note " + note );
     //remove the processed part of the note
     note = removeFromNoteFromTo(note, 0, nextSpaceLocation);
-    //note.substring(note.indexOf(" ") + 1, note.length - 1);
   }
 
-  //Check for paid amount in first line
-  /*
-  var paidAmountLocation = regexIndexOf(note, /\s(?<!-)[0-9]{3,4}\s/) + 1;
-  nextSpaceLocation = regexIndexOf(note, /\s/, paidAmountLocation + 1);
-
-  if (paidAmountLocation != -1) {
-    pagato = note.substring(paidAmountLocation, nextSpaceLocation);
-    note = removeFromNoteFromTo(note, paidAmountLocation, nextSpaceLocation);
-  }
-  */
-
-  var results = findValueAndExtract(note, /[a-zA-Z]{3}-[0-9]{3,}/);
+  //Check if voucher
+  var results = findValueAndExtract(note, /[a-zA-Z]{3,4}-[0-9]{3,}/);
   note = results.note, voucher = results.valueFound;
   if (voucher) {metodo = "voucher"};
 
+  //Check if paid amount present
   var results = findValueAndExtract(note, /[0-9]{3,4}\s/);
   note = results.note, pagato = results.valueFound;
 
+  //Check if "ok" status
   var results = findValueAndExtract(note, /ok\s/);
   note = results.note, status = results.valueFound = "ok" ? "confermato" : "";
 
+  //Check if "cc" as payment method
   var results = findValueAndExtract(note, /\s?cc\s/);
   note = results.note, metodo = results.valueFound;
 
+  //Check if pagat* il is present
   var results = findValueAndExtract(note, /pagat.\sil\s/, 10);
   note = results.note, dataPagata = results.valueFound;
-
-/*
-  var okLocation = regexIndexOf(note, /\sok\s/) + 1;
-  nextSpaceLocation = regexIndexOf(note, /\s/, okLocation + 1);
-
-  //Check for ok, to set default status, will check for other trigger words after
-  if (okLocation != -1) {
-    status = "confermato";
-    note = removeFromNoteFromTo(note, okLocation, nextSpaceLocation);
-  }
-  //RUN1: row 31 check bambu voucher number is 1030 and other not damaged
-  //Check for voucher location in first line
-  var voucherStartLoc = regexIndexOf(note, /[a-zA-Z]{3}-[0-9]{3,}/);
-  nextSpaceLocation = regexIndexOf(note, /\s/, voucherStartLoc + 1);
-
-  if (voucherStartLoc != -1) {
-    voucher = note.substring(voucherStartLoc, nextSpaceLocation);
-    metodo = "voucher";
-    note = removeFromNoteFromTo(note, voucherStartLoc, nextSpaceLocation);
-  }
-
-  //Check for cc location in first line
-  var ccStartLoc = regexIndexOf(note, /\s?cc\s/);
-  nextSpaceLocation = regexIndexOf(note, /\s/, ccStartLoc + 1);
-
-  if (ccStartLoc != -1) {
-    metodo = note.substring(ccStartLoc, 2);
-    note = removeFromNoteFromTo(note, ccStartLoc, nextSpaceLocation);
-  }
-*/
 
   //TODO to validate against data
   if (metodo == "" && pagato != "") {
     metodo = "bonifico";
   }
 
-  //check for "pagat* il" date
-  /*
-  var pagatailStartLoc = regexIndexOf(note, /pagat.\sil\s/);
-  nextSpaceLocation = regexIndexOf(note, /\s/, pagatailStartLoc + 10);
-
-  if (pagatailStartLoc != -1) {  
-    //go to end of pagata il (10 chars) and take the next 10 characters
-    dataPagata = note.substring(pagatailStartLoc + 10 ,nextSpaceLocation)
-
-    //remove the processed part in the middle of the note, leaving only the rest
-    note = removeFromNoteFromTo(note, pagatailStartLoc, nextSpaceLocation);
-  }*/
-
-  //Look through the lines of the note to find anything with @ or numbers for the contact info
+  //Look through the lines of the note to find special lines
   var lines = note.split("\n");
-  var removeProcessedLinesFromNote = [];    
+  var removeProcessedLinesFromNote = [];   
+
   for (var z = 0; z < lines.length; z++) {
+    
+    // anything with @ or numbers for the contact info 
     //TODO phone numbers will not always be 10 digits, foreign numbers need to see if Ci puts + or 00 and how many numbers. Maybe tel +x numbers
     if ((lines[z].includes("@") || lines[z].match("[0-9]{10}")) && contatti == "") {
+
       contatti = lines[z];
+      //TODO check if these work
+      email = contatti.match(/\b[a-zA-Z0-9_\+%.-]+@[a-zA-Z0-9_\+%.-]+\.[a-zA-z]{2,}\b/);
+      if (email && email[0] != undefined) email = email[0].trim();
+      telephone = contatti.match(/(00|\+)?[0-9\s\-\/]{10,}(?![:a-z])/);
+      if (telephone && telephone[0] != undefined) telephone = telephone[0].trim();
+      
       //                      remove dashes     tel text          email                                       phone number
       nomi = contatti.replace(/-/g, "").replace(/tel./g, "").replace(/\b[a-zA-Z0-9_\+%.-]+@[a-zA-Z0-9_\+%.-]+\.[a-zA-z]{2,}\b/g, "").replace(/(00|\+)?[0-9 -\/]{10,}(?![:a-z])/g, "")
       removeProcessedLinesFromNote.push(z);
+      continue;
+    }
 
-  }
-
+    //check for "prenotat* il" date
     if (lines[z].match(/prenotat.\sil\s/)) {
-      //check for "prenotat* il" date
-
-
       var results = findValueAndExtract(note, /prenotat.\sil\s/, 13);
       note = results.note, dataPrenotata = results.valueFound;
-
-      /*
-      var prenotatilStartLoc = regexIndexOf(note, /prenotat.\sil\s/);
-      nextSpaceLocation = regexIndexOf(note, /\s/, prenotatilStartLoc + 14);
-
-      if (prenotatilStartLoc != -1) {  
-        //go to end of pagata il (13 chars) and take the next 10 characters
-        dataPrenotata = note.substring(prenotatilStartLoc + 13 ,nextSpaceLocation)
-      }
-      */
-
       removeProcessedLinesFromNote.push(z);
-  
+      continue;
+    }
+
+    //check for "annull* il" date
+    if (lines[z].match(/annull.\sil\s?/)) {
+      var results = findValueAndExtract(note, /annull.\sil\s?/, 10, 1);
+      note = results.note, noteAnnulla = results.valueFound;
+      status = "Annullato";
+      removeProcessedLinesFromNote.push(z);
+      continue;
+    }
+
+    //check for "spost* il" date
+    if (lines[z].match(/spost.\sil\s?/)) {
+      var results = findValueAndExtract(note, /spost.\sil\s?/, 10);
+      note = results.note, noteSposta = results.valueFound;
+      removeProcessedLinesFromNote.push(z);
+      continue;
+    }
+
+//TODO check if these work
+    if (lines[z].match(/\+ spa\s?/) || lines[z].match(/\+ sauna\s?/)) {
+      nextSpaceLocation = regexIndexOf(lines[z], /\s/);
+      spa = lines[z].substring(nextSpaceLocation + 1, lines[z].length);
+      removeProcessedLinesFromNote.push(z);
+      continue;
+    }
+
+//TODO check if these work - where it only says aperitivo, will be empty
+    if (lines[z].match(/\+ aperitivo\s?/)) {
+      apertivo = lines[z].substring(12, lines[z].length - 1);
+      removeProcessedLinesFromNote.push(z);
+      continue;
+    }
+
+//TODO check if these work
+    if (lines[z].match(/menu\s?/)) {
+      fnb = lines[z].replace(/\+/g, "");
+      removeProcessedLinesFromNote.push(z);
+      continue;
     }
   }
 
@@ -361,7 +260,8 @@ function splitNoteAndWriteBooking(room, note, dateText) {
 
   note = lines.join("\n");
 
-  //RUN1: row 24 has rinforzato , row 7, 12, 31 has normale
+  //RUN1: row 24 has rinforzato , row 7, 12, 31 has normale\
+  /* Handled aperitivo above
   if (note.includes("aperitivo")) {
     //Check for apertifs
       if (note.includes("aperitivo rinforzato")) {
@@ -381,10 +281,12 @@ function splitNoteAndWriteBooking(room, note, dateText) {
         note = results.note, throwAway = results.valueFound;
       }
   }
+  */
 
   //TODO maybe line that starts with ref. is for the person who bougth the voucher.. new column
 
   //Check for status and payment
+  //TODO first row not showing correct status
   var stringToRemove = "";
   if (note.includes("sposta ")) {
     status = "sposta";
@@ -406,6 +308,8 @@ function splitNoteAndWriteBooking(room, note, dateText) {
     stringToRemove = "pagat";
   } else if (note.includes("vedi")) {
     status = "manual - referral";
+  } else if (status != "confermato") {
+    log("ignoring status if");
   } else {
     status = "altro";
   }
@@ -480,33 +384,8 @@ function splitNoteAndWriteBooking(room, note, dateText) {
     ebike = "si";
   }
 
-  var bookingDate = new Date(dateText);
-  var currentDate = bookingDate.getDate();
-
-  var leavingDate = new Date(+bookingDate);
-  leavingDate.setDate(currentDate + ngg);
-  //log("in splitNote: bookingDate: " + bookingDate + " -- currentDate " + currentDate + "  --currentDate + ngg " + (currentDate + ngg) + " leavingDate " + leavingDate);
-
-  //log(bookingsProcessed + " contatti: " + contatti + " -- ngg: " + ngg);
-
-  var toOutput = [dateText, room, leavingDate, ngg, pagato, dataPagata, dataPrenotata, voucher, metodo, contatti, nomi, status, massage, apertivo, dessert, cestoBio, ebike, note, originalNote];
-  writeOutput(resultRowWrite, toOutput);
-
-  resultRowWrite++;
-  bookingsProcessed++;
-
-  if (bookingsProcessed % 25 === 0) {
-    log("Processed " + bookingsProcessed + " bookings till now...");
-  }
-}
-
-function writeBookingForReview(room, dateText, note) {
-  //log("outputting entry for x with no note ")
-  var toOutput = [dateText, room, "", "", "", "", "", "", "", "", "", "manual - referral", "", "", "", "", "", "", note];
-  writeOutput(resultRowWrite, toOutput);
-
-  resultRowWrite++;
-  bookingsProcessed++;
+  return [pagato, dataPagata, dataPrenotata, voucher, metodo, contatti, nomi, status, massage, fnb, apertivo, dessert, cestoBio, ebike, spa, noteAnnulla, noteSposta, note, originalNote];
+  
 }
 
 function writeOutput(row, toOutputArray) {
@@ -517,19 +396,11 @@ function writeOutput(row, toOutputArray) {
   for (var i = 0; i < toOutputArray.length; i++) {
     cell = output.getRange(row, startCol++);
     cell.setValue(toOutputArray[i]);
-  }
 
   //TODO remove this, it's just for testing to see each line output as it goes rather than batched
-  SpreadsheetApp.flush();
+  //SpreadsheetApp.flush();
+  }
 
-}
-
-//Function to clear all the output and start over
-function clearOutOldResults(outputSheet) {
-  var dataRange = outputSheet.getDataRange();
-  var lastRow = dataRange.getLastRow();
-  var range = outputSheet.getRange(resultStartColumn + resultStartRow + ":" + resultEndColumn + lastRow);
-  range.clearContent();
 }
 
 function titleCase(str) {
@@ -562,15 +433,17 @@ function removeFromNoteFromTo(note, startLocation, endLocation) {
   return note.substring(0, startLocation) + note.substring(endLocation + 1, note.length - 1).trim();
 }
 
-function findValueAndExtract(note, regexOrString, extraIndex) {
+function findValueAndExtract(note, regexOrString, extraIndex, tillEnd) {
 
   if(!extraIndex) extraIndex = 0;
 
   var varLocation = regexIndexOf(note, regexOrString);
   var nextSpaceLocation = regexIndexOf(note, /\s/, varLocation + 1 + extraIndex);
 
+  if(tillEnd) nextSpaceLocation = note.length;
+
   if (varLocation != -1) {
-    var valueFound = note.substring(varLocation + extraIndex, nextSpaceLocation);
+    var valueFound = note.substring(varLocation + extraIndex, nextSpaceLocation).trim();
     note = removeFromNoteFromTo(note, varLocation, nextSpaceLocation);
   }
 

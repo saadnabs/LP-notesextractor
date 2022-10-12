@@ -1,3 +1,10 @@
+//TODO
+//July 21, 
+//- Limoni 1st and 3rd counted as one but two different bookings
+//  No easy way to get borders, and likely not that important to have 100% accuracy in the historical data, so choosing to ignore this.
+//- Uva 23rd/25th counted as one but two different bookings
+//- More 23rd, check if ? processed appropriately
+
 var resultStartRow = 2;
 //Result variables  
 var resultStartColumn = "A";
@@ -9,6 +16,7 @@ var bookingsProcessed = 0;
 var allRooms = ["Suite Bleue", "Black Cabin", "Bambù", "Quercia", "Rose", "Limoni", "Uva", "More", "Lavanda", "Olivo", "Edera", "Papiro"];
 
 var output;
+var previousCellColor = "";
 
 function main() {
   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -29,10 +37,10 @@ function main() {
   //  var sheetName = sheetToSearch.getName();
 
     var sheetName =
-    "apr-giu 21";
+    "lu-sett 21";
     //"gen-mar 21";
     //"ott-dic 21";
-    //"lu-sett 21";
+    //"apr-giu 21";
     var sheetToSearch = spreadsheet.getSheetByName(sheetName);
 
     //log("spreadsheet name: " + sheetName + " -- processing: " + ((!sheetName.includes("output")) && (!sheetName.includes("new ")) && (!sheetName.includes("Form ")) && (!sheetName.includes("Room "))));
@@ -58,12 +66,14 @@ function processRange(sheetToSearch, rangeForData, rangeForMonth, dateYear) {
   var notes = dataRange.getNotes();
 
   log("Assessing bookings:");
-  assessBookingEntries(dataRange, dataValues, notes, dateYear, dateMonth);
+  assessBookingEntries(sheetToSearch, dataValues, notes, dateYear, dateMonth);
 }
 
-function assessBookingEntries(dataRange, dataValues, notes, dateYear, dateMonth) {
-  for (var i = 0; i < dataValues.length - 1; i++) {
+function assessBookingEntries(sheetToSearch, dataValues, notes, dateYear, dateMonth) {
+  //TODO ROW: for testing i = 0
+  for (var i = 8; i < dataValues.length - 1; i++) {
 
+    //TODO COLUMN: for testing j = 1 
     for (var j = 1; j < dataValues[i].length; j++) {
 
       var cellValue = dataValues[i][j];
@@ -78,6 +88,9 @@ function assessBookingEntries(dataRange, dataValues, notes, dateYear, dateMonth)
         var room = dataValues[i][0];
         var note = notes[i][j].toLowerCase();
 
+        if (note.includes("Gianluca Pileri")) {
+          log("here");
+        }
         //log(bookingsProcessed + " room " + room + " -- note: " + note);
         if (note) {
           writeBooking(room, dateText, note);
@@ -87,6 +100,15 @@ function assessBookingEntries(dataRange, dataValues, notes, dateYear, dateMonth)
         } else {
 
           var previousCellValue = dataValues[i][j-1];
+          var rangeOfTwoCells = sheetToSearch.getRange(i,j-1,1,2);
+          log("range a1not " + rangeOfTwoCells.getA1Notation());
+          log("range row " + rangeOfTwoCells.getRow());
+          log("range col " + rangeOfTwoCells.getColumn());
+          log("range numcols " + rangeOfTwoCells.getNumColumns());
+          var currentCellColor = rangeOfTwoCells.getCell(rangeOfTwoCells.getRow(), rangeOfTwoCells.getNumColumns()).getBackground();
+          previousCellColor = rangeOfTwoCells.getCell(rangeOfTwoCells.getRow(),rangeOfTwoCells.getColumn()).getBackground();
+
+          log("current color: " + currentCellColor + " -- previousCellColor " + previousCellColor);
 
           if (previousCellValue === "") {
             //This is not a continuation of the previous cell booking, might be visually connected - 2 rooms booked by 1 guest
@@ -149,19 +171,21 @@ function assessBookingEntries(dataRange, dataValues, notes, dateYear, dateMonth)
             room = "Unspecified";
           } else {
             room = getFullRoomName(room);
-            if (room == "") {
-              log(bookingsProcessed + " -- note: " + note);
-              writeBooking("N/A", dateText, note);
-            }
           }
 
           //note = note.substring(note.indexOf(" ") + 1, note.length - 1);
           //log("room " + room + " -- note: " + note);
-          writeBooking(room, dateText, note);
+          if (room == "") {
+            log(bookingsProcessed + " -- note: " + note);
+            writeBooking("N/A", dateText, note);
+            
+          } else {
+            writeBooking(room, dateText, note);
+          }
         }
-        //if cell value is empty, skip
+        //if cell value is any other unexpected value
       } else {
-        log("shouldn't encounter this");
+        writeBooking("N/A - cell value: " + cellValue, dateText, note);
       }
 
     }
