@@ -82,7 +82,6 @@ function extractNotes(outputSheetName) {
 
         if (i == 11)
           log('debug');
-          //amount paid 1.050, check others
           //emails/tel x2, check others
           //spostato
 
@@ -173,6 +172,10 @@ function splitNote(note) {
   //Check if paid amount present
   var results = findValueAndExtract(note, /\s[0-9.]{3,5}\s?/);
   note = results.note, pagato = results.valueFound;
+  if (pagato && pagato.includes(".")) {
+    log('type of pagato: ' + typeof pagato);
+    pagato = pagato.replace(/\./g,'');
+  }
 
   //Check if "ok" status
   var results = findValueAndExtract(note, /ok\s/);
