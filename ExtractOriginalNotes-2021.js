@@ -215,13 +215,6 @@ function writeOutput(row, toOutputArray) {
   SpreadsheetApp.flush();
 }
 
-function clearOutOldResults(outputSheet) {
-  var dataRange = outputSheet.getDataRange();
-  var lastRow = dataRange.getLastRow();
-  var range = outputSheet.getRange(resultStartColumn + resultStartRow + ":" + resultEndColumn + lastRow);
-  range.clearContent();
-}
-
 function getLastRow(sheet) {
   var dataRange = sheet.getDataRange();
   return dataRange.getLastRow();

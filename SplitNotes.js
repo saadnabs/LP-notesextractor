@@ -2,16 +2,16 @@
 //Her default is to have the year in YY at the end of the sheet name, this is used in processing
 
 //TODO Sheet ranges in extractNotes depend on number of rooms / will be different over the years
-//TODO metodo jan 10 is a number+number
 
 //BE AWARE
 //When adding columns
 //- modify the variable 'splitEndColumn' definition below
 //- update two instances of "toOutput" in the correct order of the additional column
 
-//?? below
-//TODOs noteExtraction
-//Room name [euro] not found in room list
+// CURRENT BUGS
+//Line 2:
+//Nota annullamento is missing the last word for some reason
+//num of days not a valid number
 
 var logging = true;
 var timing = false;
@@ -80,11 +80,18 @@ function extractNotes(outputSheetName) {
         var checkOut = dataValues[i][3];
         var numOfDays = dataValues[i][4];
 
+        if (i == 11)
+          log('debug');
+          //amount paid 1.050, check others
+          //emails/tel x2, check others
+          //spostato
+
         if (!numOfDays && !checkOut) {
           numOfDays = 1;
           checkOut = new Date(+checkIn);
           checkOut.setDate(checkIn.getDate() + numOfDays);
         }
+
         var toOutput = splitNote(note);
         toOutput.unshift(checkIn, room, checkOut, numOfDays);
 
@@ -112,7 +119,7 @@ function extractNotes(outputSheetName) {
 function sortResults(output) {
   var lastRow = output.getDataRange().getLastRow();
   //TODO use getDataRange
-  output.getRange("A1:T" + lastRow).sort(1);
+  output.getRange("A2:T" + lastRow).sort(1);
 }
 //TODO the splitting process to be cleaned up as I go through different booking formats
 function splitNote(note) {
@@ -133,6 +140,7 @@ function splitNote(note) {
   var spa = "";
   var fnb = "";
   var ngg = 1; //numero giorni
+  var comingFrom = "";
   var dataPagata = "";
   var dataPrenotata = "";
   var noteAnnulla = "", noteSposta = "";
@@ -163,7 +171,7 @@ function splitNote(note) {
   if (voucher) {metodo = "voucher"};
 
   //Check if paid amount present
-  var results = findValueAndExtract(note, /[0-9]{3,4}\s/);
+  var results = findValueAndExtract(note, /\s[0-9.]{3,5}\s?/);
   note = results.note, pagato = results.valueFound;
 
   //Check if "ok" status
@@ -172,7 +180,10 @@ function splitNote(note) {
 
   //Check if "cc" as payment method
   var results = findValueAndExtract(note, /\s?cc\s/);
-  note = results.note, metodo = results.valueFound;
+  note = results.note;
+  if (results.valueFound != undefined) {
+    metodo = results.valueFound;
+  }  
 
   //Check if pagat* il is present
   var results = findValueAndExtract(note, /pagat.\sil\s/, 10);
@@ -195,9 +206,9 @@ function splitNote(note) {
 
       contatti = lines[z];
       //TODO check if these work
-      email = contatti.match(/\b[a-zA-Z0-9_\+%.-]+@[a-zA-Z0-9_\+%.-]+\.[a-zA-z]{2,}\b/);
+      email = contatti.match(/\b[a-zA-Z0-9_\+%.-]+@[a-zA-Z0-9_\+%.-]+\.[a-zA-z]{2,}\b/g);
       if (email && email[0] != undefined) email = email[0].trim();
-      telephone = contatti.match(/(00|\+)?[0-9\s\-\/]{10,}(?![:a-z])/);
+      telephone = contatti.match(/(00|\+)?[0-9\s\-\/]{10,}(?![:a-z])/g);
       if (telephone && telephone[0] != undefined) telephone = telephone[0].trim();
       
       //                      remove dashes     tel text          email                                       phone number
@@ -216,7 +227,7 @@ function splitNote(note) {
 
     //check for "annull* il" date
     if (lines[z].match(/annull.\sil\s?/)) {
-      var results = findValueAndExtract(note, /annull.\sil\s?/, 10, 1);
+      var results = findValueAndExtract(lines[z], /annull.\sil\s?/, 10, lines[z].length);
       note = results.note, noteAnnulla = results.valueFound;
       status = "Annullato";
       removeProcessedLinesFromNote.push(z);
@@ -224,8 +235,8 @@ function splitNote(note) {
     }
 
     //check for "spost* il" date
-    if (lines[z].match(/spost.\sil\s?/)) {
-      var results = findValueAndExtract(note, /spost.\sil\s?/, 10);
+    if (lines[z].match(/spost.*\s?/)) {
+      var results = findValueAndExtract(note, /spost.*\s?/, 10);
       note = results.note, noteSposta = results.valueFound;
       removeProcessedLinesFromNote.push(z);
       continue;
@@ -240,17 +251,42 @@ function splitNote(note) {
     }
 
 //TODO check if these work - where it only says aperitivo, will be empty
-    if (lines[z].match(/\+ aperitivo\s?/)) {
+    if (lines[z].match(/^\+ aperitivo\s?/)) {
       apertivo = lines[z].substring(12, lines[z].length - 1);
       removeProcessedLinesFromNote.push(z);
       continue;
     }
 
-//TODO check if these work
-    if (lines[z].match(/menu\s?/)) {
-      fnb = lines[z].replace(/\+/g, "");
+//TODO check if these work - where it only says aperitivo, will be empty
+    if (lines[z].match(/^\+ [0-9]{1} massaggo?\s?/)) {
+      massage = lines[z];
       removeProcessedLinesFromNote.push(z);
       continue;
+    }
+
+//TODO check if these work - where it only says aperitivo, will be empty
+    if (lines[z].match(/^\+ cesto bio\s?/)) {
+      cestoBio = "si";
+      removeProcessedLinesFromNote.push(z);
+      continue;
+    }
+
+//TODO check if these work
+    if (lines[z].toLowerCase().match(/menu\s?/)) {
+      fnb = lines[z];
+      removeProcessedLinesFromNote.push(z);
+      continue;
+    }
+
+//TODO check for region
+    //if (regions.includes(lines[z].toLowerCase())) {
+    var searchRegions = regions.findIndex(element => lines[z].toLowerCase().includes(element))
+    if (searchRegions != -1) { 
+      if (comingFrom == "") {
+        comingFrom = lines[z];
+        removeProcessedLinesFromNote.push(z);
+        continue;
+      }
     }
   }
 
@@ -288,14 +324,7 @@ function splitNote(note) {
   //Check for status and payment
   //TODO first row not showing correct status
   var stringToRemove = "";
-  if (note.includes("sposta ")) {
-    status = "sposta";
-    stringToRemove = "sposta ";
-  } else if (note.includes("annulla")) {
-    //TODO check, sometimes C writes annullatto talking about previous cancelation
-    status = "annullato";
-    stringToRemove = "annulla";
-  } else if (note.includes("mai pagat")) {
+  if (note.includes("mai pagat")) {
     status = "cancellato";
     pagato = "N/A";
     metodo = "N/A";
@@ -304,12 +333,15 @@ function splitNote(note) {
     status = "cancellato";
     stringToRemove = "cancellato";
   } else if (note.includes("pagata") || note.includes("pagati")) {
-    status = "confermato";
+    if (status == "")
+      status = "confermato";
+    //else
+      //not setting it cause it's been set by a previous criteria.
     stringToRemove = "pagat";
   } else if (note.includes("vedi")) {
     status = "manual - referral";
   } else if (status != "confermato") {
-    log("ignoring status if");
+    //ignoring status when not confermato
   } else {
     status = "altro";
   }
@@ -362,7 +394,9 @@ function splitNote(note) {
     metodo = "unspecified";
   }
 
-  //Check for massages
+  //Check for massages, can be in the format
+  //+ [0-9] massagg* ... --> processed as a line in the section before
+  //... + massagg ... --> processed here
   var massageAt = note.indexOf("massag");
   if (massageAt != -1) {
     massage = note.substring(massageAt - 2, massageAt - 1);
@@ -375,16 +409,19 @@ function splitNote(note) {
   }
 
   //Check for cesto bio
+  //TODO might need this if + cesto is inline with toher stuff rather than separate line that is handled above
+  /*
   if (note.includes("cesto bio")) {
     cestoBio = "si";
   }
+  */
 
   //Check for bike
   if (note.includes("bike")) {
     ebike = "si";
   }
 
-  return [pagato, dataPagata, dataPrenotata, voucher, metodo, contatti, nomi, status, massage, fnb, apertivo, dessert, cestoBio, ebike, spa, noteAnnulla, noteSposta, note, originalNote];
+  return [pagato, dataPagata, dataPrenotata, voucher, metodo, contatti, nomi, telephone, email, status, massage, fnb, apertivo, dessert, cestoBio, ebike, spa, comingFrom, noteAnnulla, noteSposta, note, originalNote];
   
 }
 
@@ -430,7 +467,7 @@ function regexIndexOf(string, regex, startpos) {
 }
 
 function removeFromNoteFromTo(note, startLocation, endLocation) {
-  return note.substring(0, startLocation) + note.substring(endLocation + 1, note.length - 1).trim();
+  return note.substring(0, startLocation) + note.substring(endLocation + 1, note.length).trim();
 }
 
 function findValueAndExtract(note, regexOrString, extraIndex, tillEnd) {
@@ -440,7 +477,14 @@ function findValueAndExtract(note, regexOrString, extraIndex, tillEnd) {
   var varLocation = regexIndexOf(note, regexOrString);
   var nextSpaceLocation = regexIndexOf(note, /\s/, varLocation + 1 + extraIndex);
 
-  if(tillEnd) nextSpaceLocation = note.length;
+  //Either pass in 1 to go to end of note, or pass in a number to go to a specific end location
+  if (tillEnd) {
+    if(tillEnd == 1) {
+      nextSpaceLocation = note.length;
+    } else if (tillEnd > 1) {
+      nextSpaceLocation = tillEnd;    
+    }
+  }
 
   if (varLocation != -1) {
     var valueFound = note.substring(varLocation + extraIndex, nextSpaceLocation).trim();
