@@ -80,9 +80,8 @@ function extractNotes(outputSheetName) {
         var checkOut = dataValues[i][3];
         var numOfDays = dataValues[i][4];
 
-        if (i == 11)
+        if (i == 3)
           log('debug');
-          //emails/tel x2, check others
           //spostato
 
         if (!numOfDays && !checkOut) {
@@ -170,7 +169,7 @@ function splitNote(note) {
   if (voucher) {metodo = "voucher"};
 
   //Check if paid amount present
-  var results = findValueAndExtract(note, /\s[0-9.]{3,5}\s?/);
+  var results = findValueAndExtract(note, /[0-9.]{3,5}\s?/);
   note = results.note, pagato = results.valueFound;
   if (pagato && pagato.includes(".")) {
     log('type of pagato: ' + typeof pagato);
@@ -210,9 +209,9 @@ function splitNote(note) {
       contatti = lines[z];
       //TODO check if these work
       email = contatti.match(/\b[a-zA-Z0-9_\+%.-]+@[a-zA-Z0-9_\+%.-]+\.[a-zA-z]{2,}\b/g);
-      if (email && email[0] != undefined) email = email[0].trim();
+      if (email && email.length > 0) email = email.join(", ").trim();
       telephone = contatti.match(/(00|\+)?[0-9\s\-\/]{10,}(?![:a-z])/g);
-      if (telephone && telephone[0] != undefined) telephone = telephone[0].trim();
+      if (telephone && telephone.length > 0) telephone = telephone.join(", ").trim();
       
       //                      remove dashes     tel text          email                                       phone number
       nomi = contatti.replace(/-/g, "").replace(/tel./g, "").replace(/\b[a-zA-Z0-9_\+%.-]+@[a-zA-Z0-9_\+%.-]+\.[a-zA-z]{2,}\b/g, "").replace(/(00|\+)?[0-9 -\/]{10,}(?![:a-z])/g, "")
