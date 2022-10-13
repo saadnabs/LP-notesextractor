@@ -80,7 +80,7 @@ function extractNotes(outputSheetName) {
         var checkOut = dataValues[i][3];
         var numOfDays = dataValues[i][4];
 
-        if (i == 3)
+        if (i == 6)
           log('debug');
           //spostato
 
@@ -229,8 +229,9 @@ function splitNote(note) {
 
     //check for "annull* il" date
     if (lines[z].match(/annull.\sil\s?/)) {
-      var results = findValueAndExtract(lines[z], /annull.\sil\s?/, 10, lines[z].length);
-      note = results.note, noteAnnulla = results.valueFound;
+      //var results = findValueAndExtract(lines[z], /annull.\sil\s?/, 10, lines[z].length);
+      //note = results.note, noteAnnulla = results.valueFound;
+      noteAnnulla = lines[z];
       status = "Annullato";
       removeProcessedLinesFromNote.push(z);
       continue;
@@ -238,8 +239,9 @@ function splitNote(note) {
 
     //check for "spost* il" date
     if (lines[z].match(/spost.*\s?/)) {
-      var results = findValueAndExtract(note, /spost.*\s?/, 10);
-      note = results.note, noteSposta = results.valueFound;
+      //var results = findValueAndExtract(note, /spost.*\s?/, 10, 1);
+      //note = results.note, noteSposta = results.valueFound;
+      noteSposta = lines[z];
       removeProcessedLinesFromNote.push(z);
       continue;
     }
