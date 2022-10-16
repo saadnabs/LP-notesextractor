@@ -25,7 +25,9 @@ var regions =
     //adding in also cities
     "roma",
     "milano",
-    "bolzano"
+    "bolzano",
+    "firenze", 
+    "cortina d'ampezzo"
   ]
   ;
 

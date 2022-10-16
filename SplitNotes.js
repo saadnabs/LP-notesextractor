@@ -80,7 +80,9 @@ function extractNotes(outputSheetName) {
         var checkOut = dataValues[i][3];
         var numOfDays = dataValues[i][4];
 
-        if (i == 22)
+        //TODO dormono OR vedi - leaving for now, adds complexity of multiple entries for one booking
+
+        if (i == 28)
           log('debug');
 
         if (!numOfDays && !checkOut) {
@@ -133,6 +135,7 @@ function splitNote(note) {
   var massage = "";
   var voucher = "";
   var apertivo = "";
+  var costoAperitivo = 0;
   var dessert = "";
   var cestoBio = "";
   var ebike = "";
@@ -205,6 +208,13 @@ function splitNote(note) {
   var results = findValueAndExtract(note, /pagat.\sil\s/, 10);
   note = results.note, dataPagata = results.valueFound;
 
+  //Check if aperitivo is within a line, and extract cost
+  var results = findValueAndExtract(note, /\+ aperitivo [0-9]{2} \+/, 12);
+  note = results.note, costoAperitivo = results.valueFound;
+  if (costoAperitivo && costoAperitivo != 0) {
+    apertivo = "si";
+  }
+
   //TODO to validate against data
   if (metodo == "" && pagato != "") {
     metodo = "bonifico";
@@ -268,11 +278,19 @@ function splitNote(note) {
       continue;
     }
 
-    //check for aperitivo
-    if (lines[z].match(/^\+ aperitivo\s?/)) {
-      apertivo = lines[z].substring(12, lines[z].length - 1);
-      removeProcessedLinesFromNote.push(z);
-      continue;
+    //check for aperitivo in a separate line
+    if (lines[z].match(/\+ aperitivo\s.*$\s?/)) {
+      if (apertivo == "") {
+        apertivo = lines[z].replace(/\+ aperitivo (da )?/, "");
+        var costLocation = regexIndexOf(apertivo, /(?<![\/.])[0-9]{2}(?![\/.])/);
+        costoAperitivo = apertivo.substring(costLocation, costLocation + 2);
+        if (apertivo.length == 2) apertivo = "si";
+        
+        removeProcessedLinesFromNote.push(z);
+        continue;
+      } // else
+          //if aperitivo is not empty, might have 2 aperitivo lines, leaving it to show in left over note
+      
     }
 
     //check for massaggi/o
@@ -442,7 +460,7 @@ function splitNote(note) {
     ebike = "si";
   }
 
-  return [pagato, dataPagata, paga, dataPrenotata, voucher, regalo, metodo, contatti, nomi, telephone, email, status, massage, fnb, apertivo, dessert, cestoBio, ebike, spa, comingFrom, noteAnnulla, noteSposta, note, originalNote];
+  return [pagato, dataPagata, paga, dataPrenotata, voucher, regalo, metodo, contatti, nomi, telephone, email, status, massage, fnb, apertivo, costoAperitivo, dessert, cestoBio, ebike, spa, comingFrom, noteAnnulla, noteSposta, note, originalNote];
   
 }
 
