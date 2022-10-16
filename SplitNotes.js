@@ -80,7 +80,7 @@ function extractNotes(outputSheetName) {
         var checkOut = dataValues[i][3];
         var numOfDays = dataValues[i][4];
 
-        if (i == 8)
+        if (i == 6)
           log('debug');
 
         if (!numOfDays && !checkOut) {
@@ -123,6 +123,7 @@ function splitNote(note) {
 
   var pagato = "";
   var paga = "";
+  var regalo = "";
   var metodo = "";
   var contatti = "";
   var email = "";
@@ -172,7 +173,6 @@ function splitNote(note) {
   var results = findValueAndExtract(note, /[0-9.]{3,5}\s?/);
   note = results.note, pagato = results.valueFound;
   if (pagato && pagato.includes(".")) {
-    log('type of pagato: ' + typeof pagato);
     pagato = pagato.replace(/\./g,'');
   }
 
@@ -180,8 +180,14 @@ function splitNote(note) {
   var results = findValueAndExtract(note, /paga [0-9.]{3,5}\s?/, 4);
   note = results.note, paga = results.valueFound;
   if (paga && paga.includes(".")) {
-    log('type of paga: ' + typeof paga);
     paga = paga.replace(/\./g,'');
+  }
+
+  //Check if regalo amount present
+  var results = findValueAndExtract(note, /regalo/);
+  note = results.note, regalo = results.valueFound;
+  if (regalo && regalo == "regalo") {
+    regalo = "si";
   }
 
   //Check if "ok" status
@@ -433,7 +439,7 @@ function splitNote(note) {
     ebike = "si";
   }
 
-  return [pagato, dataPagata, paga, dataPrenotata, voucher, metodo, contatti, nomi, telephone, email, status, massage, fnb, apertivo, dessert, cestoBio, ebike, spa, comingFrom, noteAnnulla, noteSposta, note, originalNote];
+  return [pagato, dataPagata, paga, dataPrenotata, voucher, regalo, metodo, contatti, nomi, telephone, email, status, massage, fnb, apertivo, dessert, cestoBio, ebike, spa, comingFrom, noteAnnulla, noteSposta, note, originalNote];
   
 }
 
