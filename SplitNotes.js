@@ -82,7 +82,6 @@ function extractNotes(outputSheetName) {
 
         if (i == 6)
           log('debug');
-          //spostato
 
         if (!numOfDays && !checkOut) {
           numOfDays = 1;
