@@ -80,7 +80,7 @@ function extractNotes(outputSheetName) {
         var checkOut = dataValues[i][3];
         var numOfDays = dataValues[i][4];
 
-        if (i == 6)
+        if (i == 22)
           log('debug');
 
         if (!numOfDays && !checkOut) {
@@ -260,7 +260,7 @@ function splitNote(note) {
       continue;
     }
 
-//TODO check if these work
+    //check for spa,sauna,idro?
     if (lines[z].match(/\+ spa\s?/) || lines[z].match(/\+ sauna\s?/)) {
       nextSpaceLocation = regexIndexOf(lines[z], /\s/);
       spa = lines[z].substring(nextSpaceLocation + 1, lines[z].length);
@@ -268,35 +268,43 @@ function splitNote(note) {
       continue;
     }
 
-//TODO check if these work - where it only says aperitivo, will be empty
+    //check for aperitivo
     if (lines[z].match(/^\+ aperitivo\s?/)) {
       apertivo = lines[z].substring(12, lines[z].length - 1);
       removeProcessedLinesFromNote.push(z);
       continue;
     }
 
-//TODO check if these work - where it only says aperitivo, will be empty
+    //check for massaggi/o
     if (lines[z].match(/^\+ [0-9]{1} massaggo?\s?/)) {
       massage = lines[z];
       removeProcessedLinesFromNote.push(z);
       continue;
     }
 
-//TODO check if these work - where it only says aperitivo, will be empty
+    //check for cesto bio
     if (lines[z].match(/^\+ cesto bio\s?/)) {
       cestoBio = "si";
       removeProcessedLinesFromNote.push(z);
       continue;
     }
 
-//TODO check if these work
+    //check for menu
     if (lines[z].toLowerCase().match(/menu\s?/)) {
       fnb = lines[z];
       removeProcessedLinesFromNote.push(z);
       continue;
     }
 
-//TODO check for region
+    //check for dessert
+    if (lines[z].toLowerCase().match(/dessert\s?/)) {
+      dessert = lines[z];
+      dessert = dessert.replace("+ dessert ", "");
+      removeProcessedLinesFromNote.push(z);
+      continue;
+    }
+
+    //check for region
     //if (regions.includes(lines[z].toLowerCase())) {
     var searchRegions = regions.findIndex(element => lines[z].toLowerCase().includes(element))
     if (searchRegions != -1) { 
@@ -419,11 +427,6 @@ function splitNote(note) {
   if (massageAt != -1) {
     massage = note.substring(massageAt - 2, massageAt - 1);
     //log("massage count: " + massage);
-  }
-
-  //Check for desserts
-  if (note.includes("dessert")) {
-    dessert = "si";
   }
 
   //Check for cesto bio
