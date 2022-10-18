@@ -139,6 +139,7 @@ var regions =
   "firenze", 
   "cortina d'ampezzo",
   "stati uniti",
+  "germania"
   ]
   ;
 

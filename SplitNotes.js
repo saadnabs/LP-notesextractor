@@ -93,7 +93,7 @@ function extractNotes(outputSheetName) {
         //TODO dormono OR vedi - leaving for now, adds complexity of multiple entries for one booking
 
         //% 10 == 0
-        if (i == 69)
+        if (i == 84)
           log('debug');
 
         if (!numOfDays && !checkOut) {
@@ -342,6 +342,13 @@ function splitNote(note) {
       continue;
     }
 
+    //check for dessert
+    if (lines[z].toLowerCase().match(/e-bike\s?/)) {
+      ebike = lines[z];
+      removeProcessedLinesFromNote.push(z);
+      continue;
+    }
+
     //check for region
     //if (regions.includes(lines[z].toLowerCase())) {
     var searchRegions = regions.findIndex(element => lines[z].toLowerCase().includes(element))
@@ -447,12 +454,12 @@ function splitNote(note) {
   if (note.includes("cesto bio")) {
     cestoBio = "si";
   }
-  */
 
   //Check for bike
   if (note.includes("bike")) {
     ebike = "si";
   }
+  */
 
   return [pagato, dataPagata, paga, dataPrenotata, voucher, regalo, metodo, contatti, nomi, telephone, email, status, massage, fnb, apertivo, costoAperitivo, dessert, cestoBio, fiori, ebike, spa, comingFrom, noteAnnulla, noteSposta, note, originalNote];
   
