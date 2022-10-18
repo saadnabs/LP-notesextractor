@@ -8,6 +8,16 @@
 //- modify the variable 'splitEndColumn' definition below
 //- update two instances of "toOutput" in the correct order of the additional column
 
+//When taking Cinzia file, replace "Alloggi" with the month number
+//Her default is to have the year in YY at the end of the sheet name, this is used in processing
+
+//TODO Sheet ranges in extractNotes depend on number of rooms / will be different over the years
+
+//BE AWARE
+//When adding columns
+//- modify the variable 'splitEndColumn' definition below
+//- update two instances of "toOutput" in the correct order of the additional column
+
 // CURRENT BUGS
 //Line 2:
 //Nota annullamento is missing the last word for some reason
@@ -82,7 +92,7 @@ function extractNotes(outputSheetName) {
 
         //TODO dormono OR vedi - leaving for now, adds complexity of multiple entries for one booking
 
-        if (i == 52)
+        if (i % 10 == 0)
           log('debug');
 
         if (!numOfDays && !checkOut) {
@@ -118,7 +128,7 @@ function extractNotes(outputSheetName) {
 function sortResults(output) {
   var lastRow = output.getDataRange().getLastRow();
   //TODO use getDataRange
-  output.getRange("A2:T" + lastRow).sort(1);
+  output.getRange("A2:" + resultEndColumn + lastRow).sort(1);
 }
 //TODO the splitting process to be cleaned up as I go through different booking formats
 function splitNote(note) {
@@ -367,34 +377,7 @@ function splitNote(note) {
 
   //Check for status and payment
   //TODO first row not showing correct status
-  var stringToRemove = "";
-  if (note.includes("mai pagat")) {
-    status = "cancellato";
-    pagato = "N/A";
-    metodo = "N/A";
-    stringToRemove = "mai pagat";
-  } else if (note.includes("cancellata")) {
-    status = "cancellato";
-    stringToRemove = "cancellato";
-  } else if (note.includes("pagata") || note.includes("pagati")) {
-    if (status == "")
-      status = "confermato";
-    //else
-      //not setting it cause it's been set by a previous criteria.
-    stringToRemove = "pagat";
-  } else if (note.includes("vedi")) {
-    status = "manual - referral";
-  } else if (status != "confermato") {
-    //ignoring status when not confermato
-  } else {
-    status = "altro";
-  }
-
-  //RUN1: row 29, note removes mai pagata
-  if (stringToRemove != "") {
-    var stringToRemoveLocation = note.indexOf(stringToRemove);
-    note = note.substring(0, stringToRemoveLocation) + note.substring(stringToRemoveLocation + stringToRemove.length, note.length - 1)
-  }
+  note = checkStatus(note, status)
 
   //Check payment methods
   if (note.includes("fa bon")) {
@@ -465,6 +448,37 @@ function splitNote(note) {
   
 }
 
+function checkStatus(note, status) {
+  var stringToRemove = "";
+  if (note.includes("mai pagat")) {
+    status = "cancellato";
+    stringToRemove = "mai pagat";
+  } else if (note.includes("cancellata")) {
+    status = "cancellato";
+    stringToRemove = "cancellato";
+  } else if (note.includes("pagata") || note.includes("pagati")) {
+    if (status == "")
+      status = "confermato";
+    //else
+      //not setting it cause it's been set by a previous criteria.
+    stringToRemove = "pagat";
+  } else if (note.includes("vedi")) {
+    status = "manual - referral";
+  } else if (status != "") {
+    //ignoring status when not empty
+  } else {
+    status = "altro";
+  }
+
+  //RUN1: row 29, note removes mai pagata
+  if (stringToRemove != "") {
+    var stringToRemoveLocation = note.indexOf(stringToRemove);
+    note = note.substring(0, stringToRemoveLocation) + note.substring(stringToRemoveLocation + stringToRemove.length, note.length - 1)
+  }
+
+  return note;
+}
+
 function writeOutput(row, toOutputArray) {
 
   var startCol = 1;
@@ -475,8 +489,8 @@ function writeOutput(row, toOutputArray) {
     cell.setValue(toOutputArray[i]);
 
   //TODO remove this, it's just for testing to see each line output as it goes rather than batched
-  //SpreadsheetApp.flush();
   }
+  //SpreadsheetApp.flush();
 
 }
 

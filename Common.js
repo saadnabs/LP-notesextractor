@@ -1,7 +1,7 @@
 //Result variables  
 var resultStartRow = 2;
 var resultStartColumn = "A";
-var resultEndColumn = "AA";
+var resultEndColumn = "AC";
 
 function clearOutOldResults(outputSheet) {
   var dataRange = outputSheet.getDataRange();
