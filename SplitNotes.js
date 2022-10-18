@@ -92,7 +92,8 @@ function extractNotes(outputSheetName) {
 
         //TODO dormono OR vedi - leaving for now, adds complexity of multiple entries for one booking
 
-        if (i % 10 == 0)
+        //% 10 == 0
+        if (i == 57)
           log('debug');
 
         if (!numOfDays && !checkOut) {
@@ -118,8 +119,9 @@ function extractNotes(outputSheetName) {
 // End for
 //  }
 
-  //TODO, check if sort works without moving header
-  sortResults(output);
+  //check if sort works without moving header
+  //TODO, put this back once done testing lines
+  //sortResults(output);
 
   var endTime = Date.now();
   log("Bookings processed: " + bookingsProcessed + " in " + Math.round(((endTime - startTime) / 1000)) + " seconds.");
@@ -151,6 +153,7 @@ function splitNote(note) {
   var ebike = "";
   var spa = "";
   var fnb = "";
+  var fiori = "";
   var ngg = 1; //numero giorni
   var comingFrom = "";
   var dataPagata = "";
@@ -317,8 +320,15 @@ function splitNote(note) {
       continue;
     }
 
+    //check for cesto bio
+    if (lines[z].match(/^\+ fiori\s?/)) {
+      fiori = lines[z];
+      removeProcessedLinesFromNote.push(z);
+      continue;
+    }
+
     //check for menu
-    if (lines[z].toLowerCase().match(/menu\s?/)) {
+    if (lines[z].toLowerCase().match(/menu\s?/) || lines[z].toLowerCase().match(/cena\s?/)) {
       fnb = lines[z];
       removeProcessedLinesFromNote.push(z);
       continue;
@@ -444,7 +454,7 @@ function splitNote(note) {
     ebike = "si";
   }
 
-  return [pagato, dataPagata, paga, dataPrenotata, voucher, regalo, metodo, contatti, nomi, telephone, email, status, massage, fnb, apertivo, costoAperitivo, dessert, cestoBio, ebike, spa, comingFrom, noteAnnulla, noteSposta, note, originalNote];
+  return [pagato, dataPagata, paga, dataPrenotata, voucher, regalo, metodo, contatti, nomi, telephone, email, status, massage, fnb, apertivo, costoAperitivo, dessert, cestoBio, fiori, ebike, spa, comingFrom, noteAnnulla, noteSposta, note, originalNote];
   
 }
 
@@ -473,7 +483,9 @@ function checkStatus(note, status) {
   //RUN1: row 29, note removes mai pagata
   if (stringToRemove != "") {
     var stringToRemoveLocation = note.indexOf(stringToRemove);
-    note = note.substring(0, stringToRemoveLocation) + note.substring(stringToRemoveLocation + stringToRemove.length, note.length - 1)
+    var stringLength = stringToRemove.length;
+    if (stringToRemove == "pagat") stringLength++;
+    note = note.substring(0, stringToRemoveLocation) + note.substring(stringToRemoveLocation + stringLength, note.length)
   }
 
   return note;
