@@ -82,7 +82,7 @@ function extractNotes(outputSheetName) {
 
         //TODO dormono OR vedi - leaving for now, adds complexity of multiple entries for one booking
 
-        if (i == 28)
+        if (i == 52)
           log('debug');
 
         if (!numOfDays && !checkOut) {
@@ -209,7 +209,7 @@ function splitNote(note) {
   note = results.note, dataPagata = results.valueFound;
 
   //Check if aperitivo is within a line, and extract cost
-  var results = findValueAndExtract(note, /\+ aperitivo [0-9]{2} \+/, 12);
+  var results = findValueAndExtract(note, /\+ aperitivo\s*[0-9]{2} \+/, 12);
   note = results.note, costoAperitivo = results.valueFound;
   if (costoAperitivo && costoAperitivo != 0) {
     apertivo = "si";
@@ -444,6 +444,7 @@ function splitNote(note) {
   var massageAt = note.indexOf("massag");
   if (massageAt != -1) {
     massage = note.substring(massageAt - 2, massageAt - 1);
+    note = note.substring(0, massageAt - 5) + note.substring(massageAt + 8);
     //log("massage count: " + massage);
   }
 
