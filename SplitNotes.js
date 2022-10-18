@@ -93,7 +93,7 @@ function extractNotes(outputSheetName) {
         //TODO dormono OR vedi - leaving for now, adds complexity of multiple entries for one booking
 
         //% 10 == 0
-        if (i == 57)
+        if (i == 69)
           log('debug');
 
         if (!numOfDays && !checkOut) {

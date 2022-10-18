@@ -1,7 +1,7 @@
 //Result variables  
 var resultStartRow = 2;
 var resultStartColumn = "A";
-var resultEndColumn = "AC";
+var resultEndColumn = "AD";
 
 function clearOutOldResults(outputSheet) {
   var dataRange = outputSheet.getDataRange();
@@ -9,6 +9,7 @@ function clearOutOldResults(outputSheet) {
 
   //Trying to handle the clearing of the headers when the sheet is empty
   if (!resultStartRow || resultStartRow < 2) resultStartRow = 2;
+  if (lastRow && lastRow < 2) lastRow = 2;
   var range = outputSheet.getRange(resultStartColumn + resultStartRow + ":" + resultEndColumn + lastRow);
   log("in clearOutOldResults -- range " + range.getA1Notation());
   range.clearContent();
