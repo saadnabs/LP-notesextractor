@@ -93,7 +93,7 @@ function extractNotes(outputSheetName) {
         //TODO dormono OR vedi - leaving for now, adds complexity of multiple entries for one booking
 
         //% 10 == 0
-        if (i == 84)
+        if (i == 99)
           log('debug');
 
         if (!numOfDays && !checkOut) {
@@ -186,14 +186,17 @@ function splitNote(note) {
   if (voucher) {metodo = "voucher"};
 
   //Check if paid amount present
-  var results = findValueAndExtract(note, /[0-9.]{3,5}\s?/);
+  //TODO ISSUE with extracting line 12 with pagato 1.050, but extracts ## from date scad
+  //only impacts a few entries. can NOT add xero, caause it leaves CCOK attachr
+
+   var results = findValueAndExtract(note, /[0-9.]{2,5}\s/);
   note = results.note, pagato = results.valueFound;
   if (pagato && pagato.includes(".")) {
     pagato = pagato.replace(/\./g,'');
   }
 
   //Check if paga amount present
-  var results = findValueAndExtract(note, /paga [0-9.]{3,5}\s?/, 4);
+  var results = findValueAndExtract(note, /paga [0-9.]{2,5}\s?/, 4);
   note = results.note, paga = results.valueFound;
   if (paga && paga.includes(".")) {
     paga = paga.replace(/\./g,'');
