@@ -153,6 +153,8 @@ function splitNote(note) {
   var cestoBio = "";
   var ebike = "";
   var spa = "";
+  var idroCount = 0;
+  var saunaCount = 0;
   var fnb = "";
   var fiori = "";
   var ngg = 1; //numero giorni
@@ -291,6 +293,20 @@ function splitNote(note) {
     if (lines[z].match(/\+ spa\s?/) || lines[z].match(/\+ sauna\s?/)) {
       nextSpaceLocation = regexIndexOf(lines[z], /\s/);
       spa = lines[z].substring(nextSpaceLocation + 1, lines[z].length);
+
+      if (spa.includes("sauna")) {
+        saunaCount = 1;
+      } else if (spa.includes("completo")) {
+        saunaCount = 1;
+        idroCount = 1;
+      } //where spa with a 50/60 amount, used to imply only sauna cause was the only section available
+        else if (spa.match(/spa.*\s[0-9]{2}(?![\.\-\/\:])/)) {
+          saunaCount = 1;
+      } else if (spa.includes("spa")) {
+        saunaCount = 1;
+        idroCount = 1;
+      }
+
       removeProcessedLinesFromNote.push(z);
       continue;
     }
@@ -465,7 +481,7 @@ function splitNote(note) {
   }
   */
 
-  return [pagato, dataPagata, paga, dataPrenotata, voucher, regalo, metodo, contatti, nomi, telephone, email, status, massage, massageCount == 0 ? "" : massageCount, fnb, apertivo, costoAperitivo, dessert, cestoBio, fiori, ebike, spa, comingFrom, noteAnnulla, noteSposta, note, originalNote];
+  return [pagato, dataPagata, paga, dataPrenotata, voucher, regalo, metodo, contatti, nomi, telephone, email, status, massage, massageCount == 0 ? "" : massageCount, fnb, apertivo, costoAperitivo, dessert, cestoBio, fiori, ebike, spa, idroCount == 0 ? "" : idroCount, saunaCount == 0 ? "" : saunaCount, comingFrom, noteAnnulla, noteSposta, note, originalNote];
   
 }
 
