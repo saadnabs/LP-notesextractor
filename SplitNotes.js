@@ -93,7 +93,7 @@ function extractNotes(outputSheetName) {
         //TODO dormono OR vedi - leaving for now, adds complexity of multiple entries for one booking
 
         //% 10 == 0
-        if (i == 99)
+        if (i == 77)
           log('debug');
 
         if (!numOfDays && !checkOut) {
@@ -189,8 +189,8 @@ function splitNote(note) {
   if (voucher) {metodo = "voucher"};
 
   //Check if paid amount present
-  //TODO ISSUE with extracting line 12 with pagato 1.050, but extracts ## from date scad
-  //only impacts a few entries. can NOT add xero, caause it leaves CCOK attachr
+  //TODO ISSUE with extracting line 69, senza caparra, but extracts //paga// 800 from the second line
+  //ignoring cause too small of an issue, will handle manually
 
    var results = findValueAndExtract(note, /[0-9.]{2,5}\s/);
   note = results.note, pagato = results.valueFound;
@@ -228,7 +228,7 @@ function splitNote(note) {
   note = results.note, dataPagata = results.valueFound;
 
   //Check if aperitivo is within a line, and extract cost
-  var results = findValueAndExtract(note, /\+ aperitivo\s*[0-9]{2} \+/, 12);
+  var results = findValueAndExtract(note, /\+\saperitivo\s*[0-9]{2}\s?[\+\n]?/, 12);
   note = results.note, costoAperitivo = results.valueFound;
   if (costoAperitivo && costoAperitivo != 0) {
     apertivo = "si";
@@ -290,7 +290,7 @@ function splitNote(note) {
     }
 
     //check for spa,sauna,idro?
-    if (lines[z].match(/\+ spa\s?/) || lines[z].match(/\+ sauna\s?/)) {
+    if (lines[z].match(/^\+ spa\s?/) || lines[z].match(/^\+ sauna\s?/)) {
       nextSpaceLocation = regexIndexOf(lines[z], /\s/);
       spa = lines[z].substring(nextSpaceLocation + 1, lines[z].length);
 
@@ -312,11 +312,17 @@ function splitNote(note) {
     }
 
     //check for aperitivo in a separate line
-    if (lines[z].match(/\+ aperitivo\s.*$\s?/)) {
+    if (lines[z].match(/^\+ aperitivo\s.*$\s?/)) {
       if (apertivo == "") {
         apertivo = lines[z].replace(/\+ aperitivo (da )?/, "");
         var costLocation = regexIndexOf(apertivo, /(?<![\/.])[0-9]{2}(?![\/.])/);
-        costoAperitivo = apertivo.substring(costLocation, costLocation + 2);
+        if (costLocation != -1 ) {
+          costoAperitivo = apertivo.substring(costLocation, costLocation + 2);
+        } else {
+          //default to 30
+          costoAperitivo = 30;
+        }
+        
         if (apertivo.length == 2) apertivo = "si";
         
         removeProcessedLinesFromNote.push(z);
@@ -466,6 +472,16 @@ function splitNote(note) {
     massageCount = note.substring(massageAt - 2, massageAt - 1);
     note = note.substring(0, massageAt - 5) + note.substring(massageAt + 8);
     //log("massage count: " + massage);
+  }
+
+  //check for sauna embedded in a line with other text
+  var saunaAt = note.indexOf("+ sauna");
+  if (saunaAt != -1) {
+    spa = "si";
+    saunaCount = 1;
+    var temp = note.match(/\+ sauna .+?(?=[\+\n])/);
+    if (temp.length == 1) temp = temp[0];
+    note = note.substring(0, saunaAt) + note.substring(saunaAt + temp.length);
   }
 
   //Check for cesto bio
