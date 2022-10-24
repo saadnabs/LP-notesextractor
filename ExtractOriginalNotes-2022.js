@@ -19,7 +19,9 @@ var spreadsheetId;
 var previousCellColor = "";
 var sheetName;
 
-var outputSheetName = "output-test";
+//var outputSheetName = "output-test";
+var outputSheetName = "extracted-ott-dic 22";
+//var outputSheetName = "verified-gen-mar 23";
 
 function main22() {
   
@@ -46,6 +48,10 @@ function main22() {
 
     sheetName =
     "ott-dic 22";
+    //"ott-dic 23";
+    //"lu-sett 23";
+    //"apr-giu 23";
+    //"gen-mar 23";
     //"gen-mar 21";
     //"ott-dic 21";
     //"apr-giu 21";

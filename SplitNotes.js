@@ -48,7 +48,7 @@ function extractNotes(outputSheetName) {
   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 
   //Explicitly get the search notes sheet called output
-  var outputSheetName = "output-test";
+  var outputSheetName = "split-ott-dic 22";
   output = spreadsheet.getSheetByName(outputSheetName);
 
   //Clear out previous results
@@ -70,7 +70,7 @@ function extractNotes(outputSheetName) {
 //  for (var i in sheets) {
 //    var sheetToSearch = sheets[i]; //sheet // 
 //    var sheetName = sheetToSearch.getName();
-    var sheetName = "verified-ott-dic 22";
+    var sheetName = "extracted-ott-dic 22";
     var sheetToSearch = spreadsheet.getSheetByName(sheetName);
     log("spreadsheet name: " + sheetName + " -- processing: " + ((!sheetName.includes("output")) && (!sheetName.includes("new ")) && (!sheetName.includes("Form ")) && (!sheetName.includes("Room "))));
     if ((!sheetName.includes("output")) && (!sheetName.includes("new ")) && (!sheetName.includes("Form ")) && (!sheetName.includes("Room "))) {
@@ -82,7 +82,7 @@ function extractNotes(outputSheetName) {
       var dataValues = dataRange.getValues();
 
       //Loop over rows (skipping header), and process the note column
-      for (var i = 1; i < dataValues.length - 1; i++) {
+      for (var i = 1; i < dataValues.length; i++) {
 
         var checkIn = new Date(dataValues[i][0]);
         var room = dataValues[i][1];
@@ -405,8 +405,6 @@ function splitNote(note) {
     status = "da pagare";
   } else if (note.includes("salda")) {
     status = "da pagare";
-  } else if (note.includes("cc pagat")) {
-    metodo = "carta di credito - pagata";
   } else if (note.includes("garanzia")) {
     metodo = "carta di credito - garanzia";
     status = "confermato";
