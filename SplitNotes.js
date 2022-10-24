@@ -145,6 +145,7 @@ function splitNote(note) {
   var nomi = "";
   var status = "";
   var massage = "";
+  var massageCount = 0;
   var voucher = "";
   var apertivo = "";
   var costoAperitivo = 0;
@@ -312,6 +313,7 @@ function splitNote(note) {
     //check for massaggi/o
     if (lines[z].match(/^\+ [0-9]{1} massaggo?\s?/)) {
       massage = lines[z];
+      massageCount = lines[z].match(/[0-9]{1}/);
       removeProcessedLinesFromNote.push(z);
       continue;
     }
@@ -444,7 +446,8 @@ function splitNote(note) {
   //... + massagg ... --> processed here
   var massageAt = note.indexOf("massag");
   if (massageAt != -1) {
-    massage = note.substring(massageAt - 2, massageAt - 1);
+    massage = "si";
+    massageCount = note.substring(massageAt - 2, massageAt - 1);
     note = note.substring(0, massageAt - 5) + note.substring(massageAt + 8);
     //log("massage count: " + massage);
   }
@@ -462,7 +465,7 @@ function splitNote(note) {
   }
   */
 
-  return [pagato, dataPagata, paga, dataPrenotata, voucher, regalo, metodo, contatti, nomi, telephone, email, status, massage, fnb, apertivo, costoAperitivo, dessert, cestoBio, fiori, ebike, spa, comingFrom, noteAnnulla, noteSposta, note, originalNote];
+  return [pagato, dataPagata, paga, dataPrenotata, voucher, regalo, metodo, contatti, nomi, telephone, email, status, massage, massageCount == 0 ? "" : massageCount, fnb, apertivo, costoAperitivo, dessert, cestoBio, fiori, ebike, spa, comingFrom, noteAnnulla, noteSposta, note, originalNote];
   
 }
 
